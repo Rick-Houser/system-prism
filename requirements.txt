@@ -1,2 +1,2 @@
-flask==2.0.1
-python-json-logger==2.0.2
+flask>=3.0.0
+python-json-logger>=3.0.0
