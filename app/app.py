@@ -6,7 +6,7 @@ app = Flask(__name__)
 tasks = []
 
 # Configure logging
-logger = logging.getLogger()
+logger = logging.getLogger('flask_app')
 logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
 formatter = jsonlogger.JsonFormatter('%(asctime)s %(levelname)s %(message)s')
