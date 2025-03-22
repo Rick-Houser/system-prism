@@ -1,12 +1,11 @@
 import unittest
-from app.app import app
+from app import app
 
 class TestFlaskApp(unittest.TestCase):
     def setUp(self):
         app.config['TESTING'] = True
         self.client = app.test_client()
         # Reset tasks list before each test
-        global tasks
         tasks.clear()
 
     def test_get_tasks_empty(self):
