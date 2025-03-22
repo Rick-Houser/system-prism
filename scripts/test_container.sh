@@ -1,14 +1,11 @@
 #!/bin/bash
 set -e
 
-# Build the image
-docker build -t flask-app:test .
+# Build and start services
+docker-compose up -d
 
-# Run the container in the background
-docker run -d -p 5000:5000 --name flask-app-test flask-app:test
-
-# Wait briefly for the app to start
-sleep 2
+# Wait for services to start
+sleep 5
 
 # Test GET /tasks
 response=$(curl -s http://localhost:5000/tasks)
@@ -19,8 +16,25 @@ else
     exit 1
 fi
 
+# Test metrics endpoint
+metrics=$(curl -s http://localhost:8000)
+if echo "$metrics" | grep -q "request_count"; then
+    echo "Metrics endpoint test passed"
+else
+    echo "Metrics endpoint test failed: no request_count found"
+    exit 1
+fi
+
+# Test Prometheus
+prom_status=$(curl -s http://localhost:9090/-/healthy)
+if [ "$prom_status" = "Prometheus is Healthy." ]; then
+    echo "Prometheus health check passed"
+else
+    echo "Prometheus health check failed"
+    exit 1
+fi
+
 # Clean up
-docker stop flask-app-test
-docker rm flask-app-test
+docker-compose down
 
 echo "Container tests passed!"

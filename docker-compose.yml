@@ -1,0 +1,15 @@
+version: '3'
+services:
+  flask-app:
+    build: .
+    ports:
+      - "5000:5000"
+      - "8000:8000"
+    container_name: flask-app
+  prometheus:
+    image: prom/prometheus:v2.30.3
+    volumes:
+      - ./config/prometheus:/etc/prometheus
+    ports:
+      - "9090:9090"
+    container_name: prometheus
