@@ -1,4 +1,3 @@
-version: '3'
 services:
   flask-app:
     build: .
@@ -13,3 +12,12 @@ services:
     ports:
       - "9090:9090"
     container_name: prometheus
+  grafana:
+    image: grafana/grafana:8.5.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+    container_name: grafana
+volumes:
+  grafana-storage: {}

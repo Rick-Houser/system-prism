@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # Build and start services
@@ -31,6 +31,15 @@ if [ "$prom_status" = "Prometheus is Healthy." ]; then
     echo "Prometheus health check passed"
 else
     echo "Prometheus health check failed"
+    exit 1
+fi
+
+# Test Grafana
+grafana_status=$(curl -s http://localhost:3000/api/health | grep -o '"database":"ok"')
+if [ "$grafana_status" = '"database":"ok"' ]; then
+    echo "Grafana health check passed"
+else
+    echo "Grafana health check failed"
     exit 1
 fi
 
