@@ -2,8 +2,8 @@ groups:
 - name: flask_app_rules
   rules:
   - alert: HighErrorRate
-    expr: rate(error_count[5m]) > 0.01
-    for: 1m
+    expr: rate(error_count_total[5m]) > 0.01
+    for: 30s
     labels:
       severity: warning
     annotations:
