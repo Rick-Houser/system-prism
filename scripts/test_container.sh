@@ -43,6 +43,15 @@ else
     exit 1
 fi
 
+# Test Alertmanager
+alertmanager_status=$(curl -s http://localhost:9093/-/healthy)
+if [ "$alertmanager_status" = "Alertmanager is Healthy." ]; then
+    echo "Alertmanager health check passed"
+else
+    echo "Alertmanager health check failed"
+    exit 1
+fi
+
 # Clean up
 docker-compose down
 
