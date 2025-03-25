@@ -17,6 +17,7 @@ logger.addHandler(handler)
 # Prometheus metrics
 REQUEST_COUNT = Counter('request_count', 'Total number of requests', ['method', 'endpoint'])
 REQUEST_TIME = Summary('request_processing_seconds', 'Time spent processing requests')
+ERROR_COUNT = Counter('error_count', 'Total number of errors', ['method', 'endpoint'])
 
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
@@ -34,6 +35,7 @@ def add_task():
             tasks.append(task)
             logger.info(f'Task added: {task}')
             return jsonify({"message": "Task added"}), 201
+        ERROR_COUNT.labels(method='POST', endpoint='/tasks').inc()
         logger.warning('POST /tasks called with no task')
         return jsonify({"error": "No task provided"}), 400
 
