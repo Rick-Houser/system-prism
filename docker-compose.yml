@@ -19,5 +19,16 @@ services:
     volumes:
       - grafana-storage:/var/lib/grafana
     container_name: grafana
+  alertmanager:
+    image: prom/alertmanager:v0.23.0
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./config/alertmanager:/etc/alertmanager
+      - alertmanager-data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    container_name: alertmanager
 volumes:
   grafana-storage: {}
+  alertmanager-data: {}

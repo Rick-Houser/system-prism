@@ -1,0 +1,12 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: 'file'
+  repeat_interval: 5m
+
+receivers:
+- name: 'file'
+  file_configs:
+  - files:
+    - /alerts.log
