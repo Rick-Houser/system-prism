@@ -6,7 +6,7 @@ services:
       - "8000:8000"
     container_name: flask-app
     volumes:
-      - ./tasks.db:/app/tasks.db
+      - ./data/tasks.db:/app/tasks.db
       - ./logs:/var/log
   prometheus:
     image: prom/prometheus:v2.30.3

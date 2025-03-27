@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+import time
 from flask import Flask, request, jsonify
 from pythonjsonlogger import jsonlogger
 from prometheus_client import start_http_server, Counter, Summary
@@ -10,7 +11,7 @@ tasks = []
 # Configure logging
 logger = logging.getLogger('flask_app')
 logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
+handler = logging.FileHandler('/var/log/flask_app.log')
 formatter = jsonlogger.JsonFormatter('%(asctime)s %(levelname)s %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
@@ -22,18 +23,24 @@ ERROR_COUNT = Counter('error_count', 'Total number of errors', ['method', 'endpo
 
 # SQLite setup
 def init_db():
-    conn = sqlite3.connect('tasks.db')
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, task TEXT NOT NULL)''')
-    conn.commit()
-    conn.close()
+    for _ in range(5):
+        try:
+            conn = sqlite3.connect('/app/tasks.db')
+            c = conn.cursor()
+            c.execute('''CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, task TEXT NOT NULL)''')
+            conn.commit()
+            conn.close()
+            return
+        except sqlite3.OperationalError:
+            time.sleep(1)
+    raise Exception("Failed to initialize database")
 
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
     REQUEST_COUNT.labels(method='GET', endpoint='/tasks').inc()
     with REQUEST_TIME.time():
         logger.info('GET /tasks called')
-        conn = sqlite3.connect('tasks.db')
+        conn = sqlite3.connect('/app/tasks.db')
         c = conn.cursor()
         c.execute('SELECT * FROM tasks')
         tasks = [{'id': row[0], 'task': row[1]} for row in c.fetchall()] # Create a list of task dicts from DB query results
@@ -46,7 +53,7 @@ def add_task():
     with REQUEST_TIME.time():
         task = request.json.get('task')
         if task:
-            conn = sqlite3.connect('tasks.db')
+            conn = sqlite3.connect('/app/tasks.db')
             c = conn.cursor()
             c.execute('INSERT INTO tasks (task) VALUES (?)', (task,))
             conn.commit()
@@ -63,7 +70,7 @@ def update_task(task_id):
     with REQUEST_TIME.time():
         task = request.json.get('task')
         if task:
-            conn = sqlite3.connect('tasks.db')
+            conn = sqlite3.connect('/app/tasks.db')
             c = conn.cursor()
             c.execute('UPDATE tasks SET task = ? WHERE id = ?', (task, task_id))
             if c.rowcount == 0: # No rows updated means task ID wasn’t found
@@ -83,7 +90,7 @@ def update_task(task_id):
 def delete_task(task_id):
     REQUEST_COUNT.labels(method='DELETE', endpoint='/tasks/<id>').inc()
     with REQUEST_TIME.time():
-        conn = sqlite3.connect('tasks.db')
+        conn = sqlite3.connect('/app/tasks.db')
         c = conn.cursor()
         c.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
         if c.rowcount == 0:

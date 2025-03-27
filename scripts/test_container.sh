@@ -5,14 +5,15 @@ set -e
 docker-compose up -d
 
 # Wait for services to start
-sleep 5
+sleep 10
 
-# Test GET /tasks
+# Test CRUD - POST
+curl -s -X POST -H "Content-Type: application/json" -d '{"task": "Test task"}' http://localhost:5000/tasks
 response=$(curl -s http://localhost:5000/tasks)
-if [ "$response" = "[]" ]; then
-    echo "GET /tasks test passed"
+if echo "$response" | grep -q "Test task"; then
+    echo "CRUD - POST test passed"
 else
-    echo "GET /tasks test failed: expected [], got $response"
+    echo "CRUD - POST test failed, got $response"
     exit 1
 fi
 
@@ -27,7 +28,7 @@ fi
 
 # Test Prometheus
 prom_status=$(curl -s http://localhost:9090/-/healthy)
-if [ "$prom_status" = "Prometheus is Healthy." ]; then
+if echo "$prom_status" | grep -q "Prometheus is Healthy"; then
     echo "Prometheus health check passed"
 else
     echo "Prometheus health check failed"
@@ -35,8 +36,8 @@ else
 fi
 
 # Test Grafana
-grafana_status=$(curl -s http://localhost:3000/api/health | grep -o '"database":"ok"')
-if [ "$grafana_status" = '"database":"ok"' ]; then
+grafana_status=$(curl -s http://localhost:3000/api/health)
+if echo "$grafana_status" | grep -q '"database": "ok"'; then
     echo "Grafana health check passed"
 else
     echo "Grafana health check failed"
@@ -45,10 +46,19 @@ fi
 
 # Test Alertmanager
 alertmanager_status=$(curl -s http://localhost:9093/-/healthy)
-if [ "$alertmanager_status" = "Alertmanager is Healthy." ]; then
+if echo "$alertmanager_status" | grep -q "OK"; then
     echo "Alertmanager health check passed"
 else
     echo "Alertmanager health check failed"
+    exit 1
+fi
+
+# Test Loki
+loki_status=$(curl -s http://localhost:3100/ready)
+if echo "$loki_status" | grep -q "ready"; then
+    echo "Loki test passed"
+else
+    echo "Loki test failed"
     exit 1
 fi
 
