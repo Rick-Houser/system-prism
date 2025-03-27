@@ -1,12 +1,13 @@
 import logging
 import sqlite3
 import time
+import threading
+import psutil
 from flask import Flask, request, jsonify
 from pythonjsonlogger import jsonlogger
 from prometheus_client import start_http_server, Counter, Summary
 
 app = Flask(__name__)
-tasks = []
 
 # Configure logging
 logger = logging.getLogger('flask_app')
@@ -20,6 +21,14 @@ logger.addHandler(handler)
 REQUEST_COUNT = Counter('request_count', 'Total number of requests', ['method', 'endpoint'])
 REQUEST_TIME = Summary('request_processing_seconds', 'Time spent processing requests')
 ERROR_COUNT = Counter('error_count', 'Total number of errors', ['method', 'endpoint'])
+CPU_USAGE = Gauge('cpu_usage_percent', 'CPU usage percentage')
+MEMORY_USAGE = Gauge('memory_usage_bytes', 'Memory usage in bytes')
+
+def update_resources():
+    while True:
+        CPU_USAGE.set(psutil.cpu_percent(interval=1))
+        MEMORY_USAGE.set(psutil.virtual_memory().used)
+        time.sleep(5)
 
 # SQLite setup
 def init_db():
@@ -106,4 +115,5 @@ def delete_task(task_id):
 if __name__ == '__main__':
     init_db()
     start_http_server(8000)  # Expose metrics on port 8000
+    threading.Thread(target=update_resources, daemon=True).start()
     app.run(host='0.0.0.0', port=5000)
