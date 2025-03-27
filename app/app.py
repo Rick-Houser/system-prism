@@ -5,7 +5,7 @@ import threading
 import psutil
 from flask import Flask, request, jsonify
 from pythonjsonlogger import jsonlogger
-from prometheus_client import start_http_server, Counter, Summary
+from prometheus_client import start_http_server, Counter, Summary, Gauge
 
 app = Flask(__name__)
 
