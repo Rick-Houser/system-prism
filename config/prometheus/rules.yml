@@ -9,3 +9,11 @@ groups:
     annotations:
       summary: "High error rate detected"
       description: "Error rate for {{ $labels.method }} {{ $labels.endpoint }} exceeds 0.01/sec for 1 minute."
+  - alert: HighCPUUsage
+    expr: cpu_usage_percent > 80
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High CPU usage detected"
+      description: "CPU usage exceeds 80% for 5 minutes—consider scaling up."
