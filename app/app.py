@@ -34,7 +34,7 @@ def update_resources():
 def init_db():
     for _ in range(5):
         try:
-            conn = sqlite3.connect('/app/tasks.db')
+            conn = sqlite3.connect('sqlite:///data/tasks.db')
             c = conn.cursor()
             c.execute('''CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, task TEXT NOT NULL)''')
             conn.commit()
@@ -49,7 +49,7 @@ def get_tasks():
     REQUEST_COUNT.labels(method='GET', endpoint='/tasks').inc()
     with REQUEST_TIME.time():
         logger.info('GET /tasks called')
-        conn = sqlite3.connect('/app/tasks.db')
+        conn = sqlite3.connect('sqlite:///data/tasks.db')
         c = conn.cursor()
         c.execute('SELECT * FROM tasks')
         tasks = [{'id': row[0], 'task': row[1]} for row in c.fetchall()] # Create a list of task dicts from DB query results
@@ -62,7 +62,7 @@ def add_task():
     with REQUEST_TIME.time():
         task = request.json.get('task')
         if task:
-            conn = sqlite3.connect('/app/tasks.db')
+            conn = sqlite3.connect('sqlite:///data/tasks.db')
             c = conn.cursor()
             c.execute('INSERT INTO tasks (task) VALUES (?)', (task,))
             conn.commit()
@@ -79,7 +79,7 @@ def update_task(task_id):
     with REQUEST_TIME.time():
         task = request.json.get('task')
         if task:
-            conn = sqlite3.connect('/app/tasks.db')
+            conn = sqlite3.connect('sqlite:///data/tasks.db')
             c = conn.cursor()
             c.execute('UPDATE tasks SET task = ? WHERE id = ?', (task, task_id))
             if c.rowcount == 0: # No rows updated means task ID wasn’t found
@@ -99,7 +99,7 @@ def update_task(task_id):
 def delete_task(task_id):
     REQUEST_COUNT.labels(method='DELETE', endpoint='/tasks/<id>').inc()
     with REQUEST_TIME.time():
-        conn = sqlite3.connect('/app/tasks.db')
+        conn = sqlite3.connect('sqlite:///data/tasks.db')
         c = conn.cursor()
         c.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
         if c.rowcount == 0:
