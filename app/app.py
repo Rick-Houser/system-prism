@@ -44,14 +44,26 @@ db_initialized = False
 def init_db():
     global db_initialized
     if not db_initialized:
-        conn = psycopg2.connect(os.getenv('DB_URL'))
-        logger.info(f"Connected to DB: {os.getenv('DB_URL')}")
-        c = conn.cursor()
-        c.execute('CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, task TEXT NOT NULL)')
-        conn.commit()
-        conn.close()
-        logger.info("Table created")
-        db_initialized = True
+        retries = 0
+        max_retries = 12  # 1 minute
+        while retries < max_retries:
+            try:
+                conn = psycopg2.connect(os.getenv('DB_URL'))
+                logger.info(f"Connected to DB: {os.getenv('DB_URL')}")
+                c = conn.cursor()
+                c.execute('CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, task TEXT NOT NULL)')
+                conn.commit()
+                conn.close()
+                logger.info("Table created")
+                db_initialized = True
+                return
+            except psycopg2.OperationalError as e:
+                retries += 1
+                logger.warning(f"DB connection failed (attempt {retries}/{max_retries}): {e}")
+                if retries == max_retries:
+                    logger.error("Max retries reached—aborting")
+                    raise
+                time.sleep(5)
 
 init_db()
 
