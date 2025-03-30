@@ -1,13 +1,19 @@
+import os
 import logging
-import sqlite3
+import psycopg2
 import time
 import threading
 import psutil
 from flask import Flask, request, jsonify
 from pythonjsonlogger import jsonlogger
-from prometheus_client import start_http_server, Counter, Summary, Gauge
+from prometheus_client import Counter, Summary, Gauge, make_wsgi_app
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
 
 app = Flask(__name__)
+
+app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
+    '/metrics': make_wsgi_app()
+})
 
 # Configure logging
 logger = logging.getLogger('flask_app')
@@ -30,29 +36,34 @@ def update_resources():
         MEMORY_USAGE.set(psutil.virtual_memory().used)
         time.sleep(5)
 
-# SQLite setup
+# Start resource monitoring thread
+threading.Thread(target=update_resources, daemon=True).start()
+
+db_initialized = False
+
 def init_db():
-    for _ in range(5):
-        try:
-            conn = sqlite3.connect('sqlite:///data/tasks.db')
-            c = conn.cursor()
-            c.execute('''CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY, task TEXT NOT NULL)''')
-            conn.commit()
-            conn.close()
-            return
-        except sqlite3.OperationalError:
-            time.sleep(1)
-    raise Exception("Failed to initialize database")
+    global db_initialized
+    if not db_initialized:
+        conn = psycopg2.connect(os.getenv('DB_URL'))
+        logger.info(f"Connected to DB: {os.getenv('DB_URL')}")
+        c = conn.cursor()
+        c.execute('CREATE TABLE IF NOT EXISTS tasks (id SERIAL PRIMARY KEY, task TEXT NOT NULL)')
+        conn.commit()
+        conn.close()
+        logger.info("Table created")
+        db_initialized = True
+
+init_db()
 
 @app.route('/tasks', methods=['GET'])
 def get_tasks():
     REQUEST_COUNT.labels(method='GET', endpoint='/tasks').inc()
     with REQUEST_TIME.time():
         logger.info('GET /tasks called')
-        conn = sqlite3.connect('sqlite:///data/tasks.db')
+        conn = psycopg2.connect(os.getenv('DB_URL'))
         c = conn.cursor()
         c.execute('SELECT * FROM tasks')
-        tasks = [{'id': row[0], 'task': row[1]} for row in c.fetchall()] # Create a list of task dicts from DB query results
+        tasks = [{'id': row[0], 'task': row[1]} for row in c.fetchall()]
         conn.close()
         return jsonify(tasks)
 
@@ -62,9 +73,9 @@ def add_task():
     with REQUEST_TIME.time():
         task = request.json.get('task')
         if task:
-            conn = sqlite3.connect('sqlite:///data/tasks.db')
+            conn = psycopg2.connect(os.getenv('DB_URL'))
             c = conn.cursor()
-            c.execute('INSERT INTO tasks (task) VALUES (?)', (task,))
+            c.execute('INSERT INTO tasks (task) VALUES (%s) RETURNING id', (task,))
             conn.commit()
             conn.close()
             logger.info(f'Task added: {task}')
@@ -79,10 +90,10 @@ def update_task(task_id):
     with REQUEST_TIME.time():
         task = request.json.get('task')
         if task:
-            conn = sqlite3.connect('sqlite:///data/tasks.db')
+            conn = psycopg2.connect(os.getenv('DB_URL'))
             c = conn.cursor()
-            c.execute('UPDATE tasks SET task = ? WHERE id = ?', (task, task_id))
-            if c.rowcount == 0: # No rows updated means task ID wasn’t found
+            c.execute('UPDATE tasks SET task = %s WHERE id = %s', (task, task_id))
+            if c.rowcount == 0:
                 conn.close()
                 ERROR_COUNT.labels(method='PUT', endpoint='/tasks/<id>').inc()
                 logger.warning(f'PUT /tasks/{task_id} failed: task not found')
@@ -99,9 +110,9 @@ def update_task(task_id):
 def delete_task(task_id):
     REQUEST_COUNT.labels(method='DELETE', endpoint='/tasks/<id>').inc()
     with REQUEST_TIME.time():
-        conn = sqlite3.connect('sqlite:///data/tasks.db')
+        conn = psycopg2.connect(os.getenv('DB_URL'))
         c = conn.cursor()
-        c.execute('DELETE FROM tasks WHERE id = ?', (task_id,))
+        c.execute('DELETE FROM tasks WHERE id = %s', (task_id,))
         if c.rowcount == 0:
             conn.close()
             ERROR_COUNT.labels(method='DELETE', endpoint='/tasks/<id>').inc()
@@ -113,7 +124,4 @@ def delete_task(task_id):
         return jsonify({"message": "Task deleted"}), 200
 
 if __name__ == '__main__':
-    init_db()
-    start_http_server(8000)  # Expose metrics on port 8000
-    threading.Thread(target=update_resources, daemon=True).start()
     app.run(host='0.0.0.0', port=5000)
