@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: flask-app
 spec:
-  replicas: 2 # Two instances, like flask-app-1/2
+  replicas: 2
   selector:
     matchLabels:
       app: flask-app
@@ -11,10 +11,13 @@ spec:
     metadata:
       labels:
         app: flask-app
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5000"
     spec:
       containers:
       - name: flask-app
-        image: rickhouser/flask-app:v6.0
+        image: rickhouser/flask-app:v6.1
         ports:
           - containerPort: 5000
         env:

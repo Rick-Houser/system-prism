@@ -18,10 +18,15 @@ app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
 # Configure logging
 logger = logging.getLogger('flask_app')
 logger.setLevel(logging.INFO)
+# File handler
 handler = logging.FileHandler('/var/log/flask_app.log')
 formatter = jsonlogger.JsonFormatter('%(asctime)s %(levelname)s %(message)s')
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+# Stdout handler
+stdout_handler = logging.StreamHandler()
+stdout_handler.setFormatter(formatter)
+logger.addHandler(stdout_handler)
 
 # Prometheus metrics
 REQUEST_COUNT = Counter('request_count', 'Total number of requests', ['method', 'endpoint'])
