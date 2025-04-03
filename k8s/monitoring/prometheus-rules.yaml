@@ -3,7 +3,7 @@ kind: ConfigMap
 metadata:
   name: prometheus-rules
 data:
-  rules.yml: |
+  prometheus-rules.yaml: |
     groups:
     - name: example
       rules:

@@ -22,15 +22,10 @@ spec:
         volumeMounts:
           - name: config-volume
             mountPath: /etc/prometheus/
-          - name: rules-volume
-            mountPath: /etc/prometheus/rules/
       volumes:
         - name: config-volume
           configMap:
             name: prometheus-config
-        - name: rules-volume
-          configMap:
-            name: prometheus-rules
 ---
 apiVersion: v1
 kind: Service
@@ -85,4 +80,4 @@ data:
           - target_label: __address__
             replacement: blackbox-exporter:9115
     rule_files:
-      - /etc/prometheus/rules/rules.yml  # Matches mount path
+      - /etc/prometheus/prometheus-rules.yaml

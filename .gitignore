@@ -10,8 +10,10 @@ venv/
 
 # Logs
 *.log
-data/
+.logs/
 logs/
+data/
+.data/
 
 # IDEs
 .vscode/
@@ -19,4 +21,4 @@ logs/
 
 # OS generated files
 .DS_Store
-Thumbs.db
+Thumbs.db.data/

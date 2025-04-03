@@ -22,7 +22,17 @@ spec:
           - containerPort: 5000
         env:
           - name: DB_URL
-            value: "postgresql://user:password@postgres:5432/tasks_db"
+            valueFrom:
+              secretKeyRef:
+                name: flask-app-db-secret
+                key: db-url
+        resources:
+          limits:
+            cpu: "1000m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
 ---
 apiVersion: v1
 kind: Service

@@ -17,19 +17,34 @@ spec:
         image: postgres:15
         env:
           - name: POSTGRES_DB
-            value: "tasks_db"
+            value: "tasks"  # Sync with .env
           - name: POSTGRES_USER
-            value: "user"
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secret
+                key: postgres-user
           - name: POSTGRES_PASSWORD
-            value: "password"
+            valueFrom:
+              secretKeyRef:
+                name: postgres-secret
+                key: postgres-password
         ports:
           - containerPort: 5432
         volumeMounts:
           - name: postgres-storage
             mountPath: /var/lib/postgresql/data
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
       volumes:
         - name: postgres-storage
-          emptyDir: {} # For Minikube; use PersistentVolume in production
+          hostPath:
+            path: /data/pgdata
+            type: DirectoryOrCreate
 ---
 apiVersion: v1
 kind: Service
